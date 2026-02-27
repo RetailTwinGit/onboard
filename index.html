@@ -749,12 +749,15 @@
   // ─────────────────────────────────────────
   async function loadExistingBrands() {
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/brand_profiles?select=id,display_name&onboarding_status=eq.active&order=display_name`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/list_active_brands`, {
+        method: 'POST',
         headers: {
           'apikey': ANON_KEY,
           'Authorization': `Bearer ${ANON_KEY}`,
-          'Accept-Profile': 'news',
-        }
+          'Content-Profile': 'news',
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
       });
       const brands = await res.json();
       const sel = document.getElementById('cloneFrom');
