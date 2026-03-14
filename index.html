@@ -706,6 +706,37 @@
         After that, you can manage your drafts and generate more content from the review dashboard.
       </div>
     </div>
+
+    <!-- What happens next -->
+    <div class="card" style="margin-top: 24px; padding: 24px;">
+      <div style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 16px;">What happens next</div>
+      <div style="font-size: 14px; color: var(--text-muted); line-height: 1.8;">
+        <p style="margin-bottom: 12px;">
+          <span style="display: inline-block; width: 24px; height: 24px; background: var(--surface-3); border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; color: var(--accent); margin-right: 8px; vertical-align: middle;">1</span>
+          <strong style="color: var(--text);">Review</strong> — Our team reviews your brand profile (usually within 24 hours).
+        </p>
+        <p style="margin-bottom: 12px;">
+          <span style="display: inline-block; width: 24px; height: 24px; background: var(--surface-3); border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; color: var(--accent); margin-right: 8px; vertical-align: middle;">2</span>
+          <strong style="color: var(--text);">Email</strong> — We'll send a confirmation to <strong id="pendingEmail2" style="color: var(--accent);"></strong> when your account is activated.
+        </p>
+        <p>
+          <span style="display: inline-block; width: 24px; height: 24px; background: var(--surface-3); border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; color: var(--accent); margin-right: 8px; vertical-align: middle;">3</span>
+          <strong style="color: var(--text);">Dashboard</strong> — Log in at
+          <a href="https://twin-review.lovable.app" style="color: var(--accent); text-decoration: none;">twin-review.lovable.app</a>
+          to review and publish your AI-generated content.
+        </p>
+      </div>
+    </div>
+
+    <!-- Bookmark status page -->
+    <div style="margin-top: 16px; text-align: center;">
+      <button class="btn" id="bookmarkStatusBtn" onclick="bookmarkStatus()" style="background: var(--surface-2); color: var(--text); border: 1px solid rgba(255,255,255,0.1); font-size: 14px; padding: 12px 24px;">
+        Bookmark your status page
+      </button>
+      <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+        Check back anytime to see if your brand has been activated
+      </p>
+    </div>
   </div>
 </div>
 
@@ -1278,7 +1309,9 @@
     document.getElementById('draftFooter').textContent = brandData.content_footer || '';
 
     // Pending email
-    document.getElementById('pendingEmail').textContent = userEmail || brandData.owner_email || '';
+    const pendingEmailText = userEmail || brandData.owner_email || '';
+    document.getElementById('pendingEmail').textContent = pendingEmailText;
+    document.getElementById('pendingEmail2').textContent = pendingEmailText;
 
     // Meta
     const d = data.draft;
@@ -1289,6 +1322,15 @@
         `<span>⏱ ${d.estimated_read_time_minutes} min read</span>` +
         `<span>📢 ${d.channel}</span>`;
     }
+  }
+
+  // ─────────────────────────────────────────
+  // Bookmark status page
+  // ─────────────────────────────────────────
+  function bookmarkStatus() {
+    if (!brandData?.id) return;
+    const statusUrl = `https://twin-review.lovable.app/status?brand_id=${brandData.id}`;
+    window.open(statusUrl, '_blank');
   }
 
   // ─────────────────────────────────────────
