@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Making Of — News Intelligence Agent | Supply Twin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0B0F1A;
+      --surface: #141925;
+      --surface-2: #1C2333;
+      --surface-3: #242B3D;
+      --text: #E8ECF4;
+      --text-muted: #8A94A6;
+      --accent: #0D9488;
+      --accent-light: #14B8A6;
+      --navy: #1E3A5F;
+      --navy-light: #2A4F7A;
+      --amber: #D97706;
+      --amber-light: #F59E0B;
+      --blue: #4A90D9;
+      --green: #22C55E;
+      --purple: #A855F7;
+      --bronze: #C4956A;
+      --font: 'Inter', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      background: var(--bg);
+      font-family: var(--font);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
+
+    .slide {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 60px 100px;
+      opacity: 0;
+      transform: translateX(40px);
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+
+    .slide.active { opacity: 1; transform: translateX(0); pointer-events: auto; }
+    .slide.exit { opacity: 0; transform: translateX(-40px); }
+
+    .slide-number {
+      position: absolute;
+      top: 32px; right: 48px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+    }
+
+    .slide-logo {
+      position: absolute;
+      top: 32px; left: 48px;
+      font-size: 13px; font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .kicker {
+      font-size: 14px; font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    h1 { font-size: 52px; font-weight: 800; line-height: 1.1; margin-bottom: 24px; letter-spacing: -1.5px; }
+    h2 { font-size: 40px; font-weight: 700; line-height: 1.15; margin-bottom: 20px; letter-spacing: -0.5px; }
+
+    .subtitle { font-size: 20px; font-weight: 300; color: var(--text-muted); line-height: 1.6; max-width: 720px; }
+
+    .highlight { color: var(--accent); }
+    .highlight-amber { color: var(--amber); }
+    .highlight-blue { color: var(--blue); }
+    .highlight-green { color: var(--green); }
+    .highlight-purple { color: var(--purple); }
+    .highlight-bronze { color: var(--bronze); }
+
+    .title-accent { width: 80px; height: 4px; background: linear-gradient(90deg, var(--accent), var(--navy)); border-radius: 2px; margin-bottom: 32px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 28px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 28px; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; margin-top: 28px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .card-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 8px; }
+    .card-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+    .card-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; }
+    .card-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+    .pipeline { display: flex; align-items: stretch; gap: 0; margin-top: 32px; }
+    .pipeline-step {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 24px 16px;
+      text-align: center;
+    }
+    .pipeline-step .step-number { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+    .pipeline-step .step-icon { font-size: 28px; margin-bottom: 8px; }
+    .pipeline-step .step-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .pipeline-step .step-detail { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+    .pipeline-arrow { font-size: 18px; color: var(--accent); padding: 0 6px; flex-shrink: 0; display: flex; align-items: center; }
+
+    .timeline { position: relative; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 16px; top: 0; bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, var(--accent), var(--blue), var(--amber), var(--green));
+    }
+    .timeline-item { display: flex; gap: 16px; margin-bottom: 14px; position: relative; }
+    .timeline-dot {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 2px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800; flex-shrink: 0; z-index: 1;
+    }
+    .timeline-content { flex: 1; padding-top: 4px; }
+    .timeline-title { font-size: 14px; font-weight: 700; margin-bottom: 1px; }
+    .timeline-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+    .voice-row { display: flex; gap: 16px; margin-bottom: 16px; }
+    .voice-brand { width: 140px; flex-shrink: 0; }
+    .voice-brand-name { font-size: 14px; font-weight: 700; }
+    .voice-brand-type { font-size: 11px; color: var(--text-muted); }
+    .voice-example {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 14px;
+      font-style: italic;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .decision-item { margin-bottom: 20px; }
+    .decision-q { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .decision-a { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 28px; }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-value { font-size: 36px; font-weight: 800; color: var(--accent); letter-spacing: -1px; }
+    .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+    .tool-card { text-align: center; padding: 24px 16px; }
+    .tool-icon { font-size: 32px; margin-bottom: 10px; }
+    .tool-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .tool-role { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+    .cta-box {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--navy), var(--navy-light));
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 20px 36px;
+      margin-top: 28px;
+      text-align: center;
+    }
+    .cta-box a { color: var(--accent); font-size: 18px; font-weight: 700; text-decoration: none; letter-spacing: 0.5px; }
+    .cta-box a:hover { color: var(--accent-light); }
+    .cta-subtext { font-size: 13px; color: var(--text-muted); margin-top: 8px; }
+
+    .nav {
+      position: fixed;
+      bottom: 32px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; align-items: center; gap: 16px;
+      z-index: 100;
+      background: rgba(20, 25, 37, 0.9);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 8px 16px;
+    }
+    .nav-btn {
+      background: none; border: 1px solid rgba(255,255,255,0.12);
+      color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; transition: all 0.2s;
+    }
+    .nav-btn:hover { background: var(--surface-2); border-color: var(--accent); }
+    .nav-dots { display: flex; gap: 6px; }
+    .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.15); cursor: pointer; transition: all 0.3s; }
+    .nav-dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
+
+    @media print {
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      html, body { height: auto; overflow: visible; background: var(--bg) !important; }
+      .nav { display: none !important; }
+      .deck { height: auto; overflow: visible; position: static; }
+      .slide { position: relative !important; opacity: 1 !important; transform: none !important; pointer-events: auto !important; page-break-after: always; min-height: 100vh; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- SLIDE 1 — TITLE -->
+  <div class="slide active">
+    <div class="title-accent"></div>
+    <div class="kicker">Supply Twin</div>
+    <h1>The Making Of<br><span class="highlight">News Intelligence Agent</span></h1>
+    <p class="subtitle">How we built an AI-powered thought leadership engine in 17 development sessions &mdash; using AI to build AI.</p>
+    <div style="display: flex; gap: 32px; margin-top: 48px;">
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: 800; color: var(--accent);">17</div>
+        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Sessions</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: 800; color: var(--accent);">12</div>
+        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Edge Functions</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: 800; color: var(--accent);">3</div>
+        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Brand Voices</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: 800; color: var(--accent);">0</div>
+        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">DevOps</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2 — WHAT WE BUILT -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">02 / 15</div>
+    <div class="kicker">The Product</div>
+    <h2>What we <span class="highlight">built</span></h2>
+    <p class="subtitle" style="margin-bottom: 24px; font-size: 18px;">An AI system that monitors industry news, classifies it by relevance, and generates publication-ready thought leadership content &mdash; in your own voice. Not generic summaries. Content that sounds like you wrote it.</p>
+    <div class="pipeline">
+      <div class="pipeline-step">
+        <div class="step-number">Ingest</div>
+        <div class="step-icon">&#x1F4E1;</div>
+        <div class="step-title">22 RSS Feeds</div>
+        <div class="step-detail">Industry sources polled daily.<br>Auto-deduplicated.</div>
+      </div>
+      <div class="pipeline-arrow">&#x2192;</div>
+      <div class="pipeline-step">
+        <div class="step-number">Classify</div>
+        <div class="step-icon">&#x1F9E0;</div>
+        <div class="step-title">AI Analysis</div>
+        <div class="step-detail">Topic, relevance 0-100,<br>sentiment, entities.</div>
+      </div>
+      <div class="pipeline-arrow">&#x2192;</div>
+      <div class="pipeline-step">
+        <div class="step-number">Generate</div>
+        <div class="step-icon">&#x270D;&#xFE0F;</div>
+        <div class="step-title">Brand Voice</div>
+        <div class="step-detail">Your expertise absorbed.<br>Your tone, your audience.</div>
+      </div>
+      <div class="pipeline-arrow">&#x2192;</div>
+      <div class="pipeline-step">
+        <div class="step-number">Review</div>
+        <div class="step-icon">&#x2705;</div>
+        <div class="step-title">Human Approval</div>
+        <div class="step-detail">Edit, approve, publish.<br>Always in control.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 — THREE BRAND VOICES -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">03 / 15</div>
+    <div class="kicker">Brand Voices</div>
+    <h2>Same news. <span class="highlight">Three perspectives.</span></h2>
+    <p class="subtitle" style="font-size: 16px; margin-bottom: 24px;">One breaking story about tariff disruptions becomes three entirely different LinkedIn posts. None of them read like AI wrote them.</p>
+    <div class="voice-row">
+      <div class="voice-brand">
+        <div class="voice-brand-name" style="color: var(--amber);">Jasper</div>
+        <div class="voice-brand-type">The Insightful Connector</div>
+      </div>
+      <div class="voice-example" style="border-left: 3px solid var(--amber);">
+        "Here's what I'm seeing across my network &mdash; this is connecting dots most people miss."
+        <div style="font-size: 11px; margin-top: 6px; font-style: normal; color: rgba(255,255,255,0.3);">Conversational &middot; Peer-to-peer &middot; Formality 4/10</div>
+      </div>
+    </div>
+    <div class="voice-row">
+      <div class="voice-brand">
+        <div class="voice-brand-name" style="color: var(--accent);">Retail Twin Labs</div>
+        <div class="voice-brand-type">The Analytical Innovator</div>
+      </div>
+      <div class="voice-example" style="border-left: 3px solid var(--accent);">
+        "Our data shows a 23% increase in lead time variance &mdash; here's what that means for your safety stock."
+        <div style="font-size: 11px; margin-top: 6px; font-style: normal; color: rgba(255,255,255,0.3);">Analytical &middot; Data-driven &middot; Complexity 7/10</div>
+      </div>
+    </div>
+    <div class="voice-row">
+      <div class="voice-brand">
+        <div class="voice-brand-name" style="color: var(--bronze);">Zefyr Solutions</div>
+        <div class="voice-brand-type">The Strategic Partner</div>
+      </div>
+      <div class="voice-example" style="border-left: 3px solid var(--bronze);">
+        "Your board needs to understand three strategic implications of this shift."
+        <div style="font-size: 11px; margin-top: 6px; font-style: normal; color: rgba(255,255,255,0.3);">Authoritative &middot; C-suite directed &middot; Formality 7/10</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 — THE STACK -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">04 / 15</div>
+    <div class="kicker">Architecture</div>
+    <h2>The <span class="highlight">stack</span></h2>
+    <div class="grid-2" style="margin-top: 24px;">
+      <div>
+        <div class="card" style="margin-bottom: 16px; border-left: 3px solid var(--green);">
+          <div class="card-label" style="color: var(--green);">Database & Auth</div>
+          <div class="card-title">Supabase</div>
+          <div class="card-desc">PostgreSQL 15, EU West Ireland. Row-Level Security enforces brand isolation at the database level. Every query auto-scopes to what the user can see.</div>
+        </div>
+        <div class="card" style="margin-bottom: 16px; border-left: 3px solid var(--blue);">
+          <div class="card-label" style="color: var(--blue);">Edge Functions</div>
+          <div class="card-title">Deno / TypeScript</div>
+          <div class="card-desc">12 server-side functions at the edge. No cold starts. Direct access to Supabase service role. Deploy with one CLI command.</div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom: 16px; border-left: 3px solid var(--purple);">
+          <div class="card-label" style="color: var(--purple);">AI Engine</div>
+          <div class="card-title">Claude Sonnet 4.5</div>
+          <div class="card-desc">Anthropic API for classification (topic, relevance, sentiment) and voice-matched content generation. Best-in-class reasoning for nuanced output.</div>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--amber);">
+          <div class="card-label" style="color: var(--amber);">Frontend</div>
+          <div class="card-title">Lovable</div>
+          <div class="card-desc">AI-assisted frontend builder. We describe the UI in natural language; Lovable builds React components. Backend-first: Lovable fetches, never calculates.</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top: 16px; font-size: 14px; color: var(--text-muted); font-style: italic;">No custom servers. No Docker. No DevOps. Everything runs on managed infrastructure.</div>
+  </div>
+
+  <!-- SLIDE 5 — THE TOOLCHAIN -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">05 / 15</div>
+    <div class="kicker">How We Built It</div>
+    <h2>AI building <span class="highlight">AI</span></h2>
+    <p class="subtitle" style="font-size: 16px; margin-bottom: 12px;">Four tools. Clear separation of concerns. The entire system &mdash; backend, frontend, deployment &mdash; built with AI assistance.</p>
+    <div class="grid-4">
+      <div class="card tool-card" style="border-top: 3px solid var(--accent);">
+        <div class="tool-icon">&#x1F916;</div>
+        <div class="tool-name">Claude Code</div>
+        <div class="tool-role">Backend development.<br>Edge functions, SQL migrations, API design, deployment.</div>
+      </div>
+      <div class="card tool-card" style="border-top: 3px solid var(--amber);">
+        <div class="tool-icon">&#x1F3A8;</div>
+        <div class="tool-name">Lovable</div>
+        <div class="tool-role">Frontend development.<br>React components from natural language descriptions.</div>
+      </div>
+      <div class="card tool-card" style="border-top: 3px solid var(--green);">
+        <div class="tool-icon">&#x26A1;</div>
+        <div class="tool-name">Supabase</div>
+        <div class="tool-role">Infrastructure.<br>Database, auth, storage, edge runtime &mdash; one platform.</div>
+      </div>
+      <div class="card tool-card" style="border-top: 3px solid var(--blue);">
+        <div class="tool-icon">&#x1F4E6;</div>
+        <div class="tool-name">GitHub</div>
+        <div class="tool-role">Version control.<br>Session discipline, onboard hosting via GitHub Pages.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top: 20px; border-left: 3px solid var(--accent); padding: 16px 24px;">
+      <div class="card-desc" style="font-size: 14px; font-style: italic;">
+        "Claude Code wrote and deployed all 12 edge functions. Lovable built the review dashboard. Claude Sonnet 4.5 powers the AI. The developer's role: architecture, decisions, and quality control."
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6 — SESSION DISCIPLINE -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">06 / 15</div>
+    <div class="kicker">Session Memory</div>
+    <h2>The system <span class="highlight">remembers everything</span></h2>
+    <p class="subtitle" style="font-size: 16px; margin-bottom: 20px;">Every session starts with full context. CLAUDE.md &mdash; the project's brain &mdash; auto-loads with the complete state: tables, functions, decisions, gotchas, and open tasks.</p>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-label">Session Discipline</div>
+        <div class="card-desc" style="font-size: 14px; line-height: 1.8;">
+          <strong style="color: var(--text);">Every session ends with:</strong><br>
+          1. Update status metrics<br>
+          2. Mark completed tasks<br>
+          3. Write session summary<br>
+          4. Commit and push to GitHub<br>
+          5. Update CLAUDE.md with learnings<br><br>
+          No pasting. No explaining. The next session picks up exactly where you left off.
+        </div>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--accent);">
+        <div class="card-label" style="color: var(--accent);">S&T Prioritization</div>
+        <div class="card-desc" style="font-size: 14px; line-height: 1.8;">
+          <strong style="color: var(--text);">Goldratt's Theory of Constraints</strong><br><br>
+          Every session starts with a Strategy & Tactics analysis. Identify the constraint. Only build what advances it.<br><br>
+          In practice: we identified <span style="color: var(--accent);">"Conversion"</span> as the active constraint (no external users yet), which kept us focused on the user experience rather than infrastructure optimization.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7 — TIMELINE PART 1 -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">07 / 15</div>
+    <div class="kicker">The Journey</div>
+    <h2><span class="highlight">17 sessions</span> &mdash; Foundation to Platform</h2>
+    <div class="grid-2" style="margin-top: 16px;">
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color: var(--accent);">4</div>
+          <div class="timeline-content">
+            <div class="timeline-title">First Classifications</div>
+            <div class="timeline-desc">152 articles classified. First 4 drafts generated across all 3 voices. Found and fixed API model issue.</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color: var(--accent);">5</div>
+          <div class="timeline-content">
+            <div class="timeline-title">Content Presentation</div>
+            <div class="timeline-desc">Magazine-style HTML exports. Print CSS, hashtag rendering fixes.</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color: var(--accent);">6</div>
+          <div class="timeline-content">
+            <div class="timeline-title">Project Identity</div>
+            <div class="timeline-desc">GitHub repo, Supabase CLI, CLAUDE.md created. Session discipline established.</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color: var(--blue);">8</div>
+          <div class="timeline-content">
+            <div class="timeline-title">Brand Infrastructure</div>
+            <div class="timeline-desc">Per-brand source configs, deterministic prompt builder, brand-filtered RPCs.</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color: var(--blue);">9</div>
+          <div class="timeline-content">
+            <div class="timeline-title">Visual Identity</div>
+            <div class="timeline-desc">Brand colors extracted from websites. CSS variable theming. Zefyr demo drafts.</div>
+          </div>
+        </div>
+      </div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color: var(--amber);">10</div>
+          <div class="timeline-content">
+            <div class="timeline-title">Brand Assets</div>
+            <div class="timeline-desc">Logos, headshots, AI disclosure footers. Each brand gets a unique transparency message.</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color: var(--amber);">11</div>
+          <div class="timeline-content">
+            <div class="timeline-title" style="color: var(--amber);">Self-Service Onboarding</div>
+            <div class="timeline-desc">Biggest session. 4-step wizard, AI voice inference, magic links, admin approval. 4 new edge functions in one session.</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color: var(--amber);">12</div>
+          <div class="timeline-content">
+            <div class="timeline-title">Auth Solved</div>
+            <div class="timeline-desc">Magic links fail in SPAs. Replaced with 6-digit OTP codes. Zero redirect issues.</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color: var(--green);">13</div>
+          <div class="timeline-content">
+            <div class="timeline-title">UX Gap Analysis</div>
+            <div class="timeline-desc">5 major gaps identified and solved: publishing, batch generation, notifications, dashboard, handoff.</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="border-color: var(--green);">14</div>
+          <div class="timeline-content">
+            <div class="timeline-title">Full Loop Validated</div>
+            <div class="timeline-desc">End-to-end: onboard &rarr; approve &rarr; login &rarr; dashboard &rarr; review &rarr; publish.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8 — TIMELINE PART 2 -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">08 / 15</div>
+    <div class="kicker">The Journey</div>
+    <h2>Sessions 15&ndash;17: <span class="highlight">Platform & Knowledge</span></h2>
+    <div class="grid-3" style="margin-top: 24px;">
+      <div class="card" style="border-top: 3px solid var(--purple);">
+        <div class="card-label" style="color: var(--purple);">Session 15</div>
+        <div class="card-title">Skills Infrastructure</div>
+        <div class="card-desc" style="margin-top: 8px;">
+          19 reusable skills built. Two-tier system across all projects. Publisher for LinkedIn (3 brand voices, 5 formats). UX review (10-dimension evaluation). Unified design system.
+        </div>
+      </div>
+      <div class="card" style="border-top: 3px solid var(--blue);">
+        <div class="card-label" style="color: var(--blue);">Session 16</div>
+        <div class="card-title">Sector-Agnostic</div>
+        <div class="card-desc" style="margin-top: 8px;">
+          Platform generalized beyond supply chain. Article lifecycle management (tiered retention). First real pipeline run: 443 articles ingested, 44 classified, 3 Zefyr drafts generated.
+        </div>
+      </div>
+      <div class="card" style="border-top: 3px solid var(--accent);">
+        <div class="card-label" style="color: var(--accent);">Session 17</div>
+        <div class="card-title" style="color: var(--accent);">Knowledge Breakthrough</div>
+        <div class="card-desc" style="margin-top: 8px;">
+          The feature that changed everything. Bio injection, URL-based knowledge extraction, expertise-absorbed content. The AI now writes with what you know, not just how you sound.
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top: 20px; background: var(--navy); border-color: rgba(13,148,136,0.3);">
+      <div class="card-desc" style="font-size: 15px; line-height: 1.7;">
+        <span style="color: var(--accent); font-weight: 600;">The principle we landed on:</span> Backend-first. Lovable fetches and displays. All logic &mdash; extraction, storage, injection, prompt building &mdash; happens in edge functions. The frontend is a replaceable display layer.
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9 — THE KNOWLEDGE BREAKTHROUGH -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">09 / 15</div>
+    <div class="kicker">Session 17</div>
+    <h2>The Knowledge <span class="highlight">Breakthrough</span></h2>
+    <div class="grid-2" style="margin-top: 20px;">
+      <div>
+        <p style="font-size: 17px; color: var(--text-muted); line-height: 1.7; margin-bottom: 20px;">
+          Before Session 17, the AI sounded like you but didn't <em>know</em> what you know. It used the right tone but missed the frameworks, the insights, the experience.
+        </p>
+        <p style="font-size: 17px; color: var(--text); line-height: 1.7; margin-bottom: 20px;">
+          We solved this with two layers of knowledge injection:
+        </p>
+        <div class="card" style="margin-bottom: 12px; border-left: 3px solid var(--accent);">
+          <div class="card-title" style="color: var(--accent);">Bio &rarr; System Prompt</div>
+          <div class="card-desc">Identity-level context. The AI knows who you are before it starts writing.</div>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--amber);">
+          <div class="card-title" style="color: var(--amber);">Knowledge &rarr; User Message</div>
+          <div class="card-desc">Publications, expertise, frameworks. Injected at generation time. Updatable without prompt regeneration.</div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="background: var(--navy); border-color: rgba(13,148,136,0.3); padding: 28px;">
+          <div class="card-label" style="color: var(--accent);">Design Decision</div>
+          <div class="card-title" style="font-size: 20px;">Absorbed. Never cited.</div>
+          <div class="card-desc" style="font-size: 14px; line-height: 1.8; margin-top: 12px;">
+            An expert writing a LinkedIn post doesn't cite their own publications. They draw on accumulated knowledge and express it naturally.<br><br>
+            Citations create distance between the author and the expertise &mdash; the opposite of thought leadership.<br><br>
+            <strong style="color: var(--text);">The AI absorbs your knowledge as background context.</strong> It influences tone, specificity, and framing &mdash; without attribution.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10 — KEY DECISIONS -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">10 / 15</div>
+    <div class="kicker">Decisions</div>
+    <h2>Why it's built <span class="highlight">this way</span></h2>
+    <div class="grid-2" style="margin-top: 20px;">
+      <div>
+        <div class="decision-item">
+          <div class="decision-q"><span class="highlight">&#x25B8;</span> Why a dedicated schema?</div>
+          <div class="decision-a">All tables in a <code style="font-family: var(--mono); color: var(--accent);">news</code> schema, not <code style="font-family: var(--mono);">public</code>. Complete isolation from other services. Prevents accidental cross-contamination.</div>
+        </div>
+        <div class="decision-item">
+          <div class="decision-q"><span class="highlight">&#x25B8;</span> Why backend-first?</div>
+          <div class="decision-a">Business logic in edge functions, not the frontend. Lovable is a replaceable display layer. Logic is reviewable, testable, and shareable across clients.</div>
+        </div>
+        <div class="decision-item">
+          <div class="decision-q"><span class="highlight">&#x25B8;</span> Why OTP over magic links?</div>
+          <div class="decision-a">Magic links fail in SPAs &mdash; auth guards strip hash tokens before Supabase can process them. OTP codes establish the session directly. Zero redirect issues.</div>
+        </div>
+      </div>
+      <div>
+        <div class="decision-item">
+          <div class="decision-q"><span class="highlight">&#x25B8;</span> Why tiered retention?</div>
+          <div class="decision-a">Low-relevance articles expire in 7 days (noise). High-relevance in 30 days. Articles linked to active drafts are protected. Keeps the pool fresh and relevant.</div>
+        </div>
+        <div class="decision-item">
+          <div class="decision-q"><span class="highlight">&#x25B8;</span> Why absorbed knowledge?</div>
+          <div class="decision-a">Thought leaders don't cite themselves. The AI reads your past work and lets expertise influence writing naturally &mdash; like experience shapes current thinking.</div>
+        </div>
+        <div class="decision-item">
+          <div class="decision-q"><span class="highlight">&#x25B8;</span> Why S&T prioritization?</div>
+          <div class="decision-a">Goldratt's constraint theory prevents scope creep. Every session asks: "What advances the constraint?" This kept us shipping instead of polishing.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11 — THE NUMBERS -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">11 / 15</div>
+    <div class="kicker">Live Metrics</div>
+    <h2>The <span class="highlight">numbers</span></h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value">990</div>
+        <div class="stat-label">Articles Ingested</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">277</div>
+        <div class="stat-label">Classified</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">11</div>
+        <div class="stat-label">Drafts Generated</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">3</div>
+        <div class="stat-label">Brand Voices</div>
+      </div>
+    </div>
+    <div class="stats-grid" style="margin-top: 16px;">
+      <div class="stat-card">
+        <div class="stat-value" style="color: var(--amber);">12</div>
+        <div class="stat-label">Edge Functions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: var(--amber);">17</div>
+        <div class="stat-label">SQL Migrations</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: var(--amber);">21</div>
+        <div class="stat-label">Lovable Prompts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: var(--amber);">22</div>
+        <div class="stat-label">Active RSS Sources</div>
+      </div>
+    </div>
+    <div style="margin-top: 20px; font-size: 14px; color: var(--text-muted); font-style: italic;">
+      All data EU-hosted (Ireland). Row-Level Security on every table. Brand isolation enforced at the database level.
+    </div>
+  </div>
+
+  <!-- SLIDE 12 — EDGE FUNCTIONS -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">12 / 15</div>
+    <div class="kicker">Backend</div>
+    <h2>12 edge functions. <span class="highlight">One platform.</span></h2>
+    <div class="grid-3" style="margin-top: 20px;">
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 4px;">news-ingest-rss</div>
+        <div class="card-desc">Poll RSS feeds, deduplicate, store</div>
+      </div>
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 4px;">news-classify</div>
+        <div class="card-desc">AI classification: topic, relevance, sentiment</div>
+      </div>
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 4px;">news-generate-content</div>
+        <div class="card-desc">Brand-voiced generation with knowledge injection</div>
+      </div>
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--amber); margin-bottom: 4px;">news-onboard-brand</div>
+        <div class="card-desc">AI brand creation, intelligent source matching</div>
+      </div>
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--amber); margin-bottom: 4px;">news-approve-brand</div>
+        <div class="card-desc">Atomic approval: status + team + email</div>
+      </div>
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--amber); margin-bottom: 4px;">news-update-brand</div>
+        <div class="card-desc">Save edits, logo upload, prompt rebuild</div>
+      </div>
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--blue); margin-bottom: 4px;">news-regenerate-prompt</div>
+        <div class="card-desc">Deterministic prompt builder (bio + language)</div>
+      </div>
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--blue); margin-bottom: 4px;">news-extract-knowledge</div>
+        <div class="card-desc">URL content extraction for knowledge base</div>
+      </div>
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--blue); margin-bottom: 4px;">news-discover-feed</div>
+        <div class="card-desc">Auto-discover RSS from any website URL</div>
+      </div>
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 4px;">news-draft-notification</div>
+        <div class="card-desc">Branded emails: digest, daily, approval</div>
+      </div>
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 4px;">news-manual-article-submit</div>
+        <div class="card-desc">Manual URL submission for classification</div>
+      </div>
+      <div class="card" style="padding: 16px 20px;">
+        <div style="font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 4px;">news-onboard-link-user</div>
+        <div class="card-desc">Link authenticated user to brand</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13 — THE THESIS -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">13 / 15</div>
+    <div class="kicker">The Insight</div>
+    <h2>Software is becoming free.<br><span class="highlight">Expertise isn't.</span></h2>
+    <p class="subtitle" style="margin-top: 20px;">
+      Anyone can ask an AI to write a LinkedIn post. The output is predictable, interchangeable, forgettable.
+    </p>
+    <p style="margin-top: 24px; font-size: 19px; font-weight: 400; color: var(--text); max-width: 720px; line-height: 1.7;">
+      What you can't replicate is <span class="highlight">years of domain experience</span>. The frameworks you've developed. The patterns you've seen. The problems you've solved.
+    </p>
+    <p style="margin-top: 24px; font-size: 19px; font-weight: 400; color: var(--text); max-width: 720px; line-height: 1.7;">
+      This system turns that expertise into content at <span class="highlight-amber">zero marginal cost</span>. The moat isn't the software &mdash; it's what you know. And nobody else knows what you know.
+    </p>
+    <div style="margin-top: 36px; padding: 16px 24px; background: var(--surface); border-radius: 10px; border-left: 3px solid var(--accent); display: inline-block;">
+      <span style="font-size: 15px; color: var(--text-muted);">Built with AI in <strong style="color: var(--accent);">17 sessions</strong>. From concept to production in <strong style="color: var(--accent);">days, not months</strong>.</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 14 — WHAT'S NEXT -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">14 / 15</div>
+    <div class="kicker">Roadmap</div>
+    <h2>Where this <span class="highlight">goes next</span></h2>
+    <div class="grid-2" style="margin-top: 24px;">
+      <div>
+        <div class="card" style="margin-bottom: 16px; border-left: 3px solid var(--accent); padding: 20px;">
+          <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); margin-bottom: 8px;">Now &mdash; Build Phase</div>
+          <div class="card-desc" style="font-size: 14px; line-height: 1.8;">
+            &bull; External user walkthrough (Zefyr)<br>
+            &bull; Classify deeper article pool<br>
+            &bull; Daily digest emails end-to-end<br>
+            &bull; Custom domain
+          </div>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--amber); padding: 20px;">
+          <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--amber); margin-bottom: 8px;">Next &mdash; Capitalize Phase</div>
+          <div class="card-desc" style="font-size: 14px; line-height: 1.8;">
+            &bull; Content memory (AI references past posts)<br>
+            &bull; Audience segmentation<br>
+            &bull; Team notifications on publish
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="background: var(--navy); border-color: rgba(13,148,136,0.3); padding: 28px; height: 100%;">
+          <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--purple); margin-bottom: 12px;">Product Roadmap</div>
+          <div class="card-desc" style="font-size: 15px; line-height: 2;">
+            <strong style="color: var(--text);">Subscription tiers</strong><br>
+            <span>Free &rarr; Pro &rarr; Enterprise</span><br><br>
+            <strong style="color: var(--text);">AI podcast / audio digest</strong><br>
+            <span>Commuter-friendly news briefing</span><br><br>
+            <strong style="color: var(--text);">Direct social publishing</strong><br>
+            <span>LinkedIn, X, newsletter APIs</span><br><br>
+            <strong style="color: var(--text);">Extensible brand profiles</strong><br>
+            <span>Skills, expertise, content memory</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 15 — CTA -->
+  <div class="slide">
+    <div class="slide-logo">Supply Twin</div>
+    <div class="slide-number">15 / 15</div>
+    <div class="title-accent"></div>
+    <div class="kicker">Let's Talk</div>
+    <h1>Built to be <span class="highlight">leveraged</span></h1>
+    <p class="subtitle" style="margin-bottom: 36px;">
+      This isn't a prototype. It's a production system &mdash; version-controlled, documented, and designed for new brands, new channels, and new capabilities. If you're curious about what AI-assisted development can do for your domain, let's have a conversation.
+    </p>
+    <div style="display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;">
+      <div class="cta-box">
+        <a href="https://retailtwingit.github.io/onboard/">Try the onboarding wizard</a>
+        <div class="cta-subtext">Set up your brand voice in under 2 minutes</div>
+      </div>
+      <div class="cta-box" style="border-color: rgba(255,255,255,0.15);">
+        <a href="mailto:jasper@retailtwin.com" style="color: var(--text);">jasper@retailtwin.com</a>
+        <div class="cta-subtext">Questions? Reach out anytime</div>
+      </div>
+    </div>
+    <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.06);">
+      <span style="font-size: 13px; color: var(--text-muted); letter-spacing: 1px;">SUPPLY TWIN &nbsp;&middot;&nbsp; Retail Twin Labs &nbsp;&middot;&nbsp; AI-Powered Supply Chain Intelligence</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <button class="nav-btn" onclick="prevSlide()">&#8592;</button>
+  <div class="nav-dots" id="navDots"></div>
+  <button class="nav-btn" onclick="nextSlide()">&#8594;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const totalSlides = slides.length;
+  let current = 0;
+
+  const dotsContainer = document.getElementById('navDots');
+  for (let i = 0; i < totalSlides; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goToSlide(i);
+    dotsContainer.appendChild(dot);
+  }
+
+  function goToSlide(n) {
+    if (n === current || n < 0 || n >= totalSlides) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current].classList.remove('exit'), 500);
+    current = n;
+    slides[current].classList.add('active');
+    document.querySelectorAll('.nav-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === current);
+    });
+  }
+
+  function nextSlide() { goToSlide(current + 1); }
+  function prevSlide() { goToSlide(current - 1); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+    if (e.key === 'Home') { e.preventDefault(); goToSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); goToSlide(totalSlides - 1); }
+  });
+</script>
+
+</body>
+</html>
