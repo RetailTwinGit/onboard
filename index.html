@@ -732,24 +732,37 @@
       <input type="email" id="userEmail" placeholder="e.g. you@yourcompany.com">
     </div>
 
-    <button class="btn btn-primary" onclick="sendMagicLink()">
-      Verify my email →
+    <button class="btn btn-primary" onclick="sendVerificationCode()">
+      Send verification code →
     </button>
 
     <div id="emailError"></div>
   </div>
 
-  <!-- ════════════════ STEP 2.5B: CHECK EMAIL ════════════════ -->
+  <!-- ════════════════ STEP 2.5B: ENTER CODE ════════════════ -->
   <div class="step" id="stepEmailSent">
     <div style="text-align:center">
       <div class="email-icon">✉️</div>
-      <h1>Check your email</h1>
+      <h1>Enter your verification code</h1>
       <p class="subtitle">
-        We sent a sign-in link to <strong id="sentEmailDisplay"></strong>.<br>
-        Click the link to verify and we'll generate your first draft.
+        We sent a 6-digit code to <strong id="sentEmailDisplay"></strong>.<br>
+        Enter it below to verify and we'll generate your first draft.
       </p>
+      <div style="margin-top:28px; display:flex; justify-content:center; gap:8px;" id="codeInputGroup">
+        <input type="text" id="otpCode" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code"
+          placeholder="000000"
+          style="width:180px; text-align:center; font-size:32px; font-weight:700; letter-spacing:12px; padding:14px 16px;
+                 background:var(--surface-2); border:1px solid rgba(255,255,255,0.12); border-radius:10px;
+                 color:var(--text); font-family:var(--mono, 'JetBrains Mono', monospace); outline:none;"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'"
+        >
+      </div>
+      <div id="codeError" style="margin-top:12px"></div>
+      <button class="btn" onclick="verifyCode()" style="margin-top:20px; min-width:200px;" id="verifyBtn">
+        Verify & continue
+      </button>
       <p style="font-size:13px; color:var(--text-muted); margin-top:24px">
-        Didn't receive it? <span class="resend-link" onclick="resendMagicLink()">Resend verification email</span>
+        Didn't receive it? <span class="resend-link" onclick="resendCode()">Resend code</span>
       </p>
       <div id="resendMsg"></div>
     </div>
@@ -1239,9 +1252,9 @@
   }
 
   // ─────────────────────────────────────────
-  // Step 2.5: Magic Link
+  // Step 2.5: Send Verification Code
   // ─────────────────────────────────────────
-  async function sendMagicLink() {
+  async function sendVerificationCode() {
     const email = document.getElementById('userEmail').value.trim();
     if (!email || !email.includes('@')) {
       document.getElementById('emailError').innerHTML = '<div class="error-msg">Please enter a valid email address.</div>';
@@ -1268,17 +1281,9 @@
       console.log('Could not update owner_email:', e);
     }
 
-    // Send magic link via Supabase Auth
-    const currentUrl = new URL(window.location.href);
-    currentUrl.search = ''; // clear existing params
-    currentUrl.searchParams.set('brand_id', brandData.id);
-    currentUrl.searchParams.set('step', 'confirmed');
-
+    // Send OTP code via Supabase Auth
     const { error } = await sbClient.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: currentUrl.toString(),
-      },
     });
 
     if (error) {
@@ -1288,30 +1293,162 @@
 
     document.getElementById('sentEmailDisplay').textContent = email;
     showStep('stepEmailSent');
+
+    // Auto-focus the code input
+    setTimeout(() => {
+      const codeInput = document.getElementById('otpCode');
+      if (codeInput) codeInput.focus();
+    }, 400);
   }
 
-  async function resendMagicLink() {
-    if (!userEmail) return;
+  // Keep old name as alias for backward compatibility with email step button
+  const sendMagicLink = sendVerificationCode;
 
-    const currentUrl = new URL(window.location.href);
-    currentUrl.search = '';
-    currentUrl.searchParams.set('brand_id', brandData.id);
-    currentUrl.searchParams.set('step', 'confirmed');
+  // ─────────────────────────────────────────
+  // Verify OTP Code
+  // ─────────────────────────────────────────
+  async function verifyCode() {
+    const code = document.getElementById('otpCode').value.trim();
+    if (code.length !== 6 || !/^\d{6}$/.test(code)) {
+      document.getElementById('codeError').innerHTML = '<div class="error-msg">Please enter the 6-digit code from your email.</div>';
+      return;
+    }
+
+    // Disable button to prevent double-submit
+    const btn = document.getElementById('verifyBtn');
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+    document.getElementById('codeError').innerHTML = '';
+
+    try {
+      const { data, error } = await sbClient.auth.verifyOtp({
+        email: userEmail,
+        token: code,
+        type: 'email',
+      });
+
+      if (error) {
+        document.getElementById('codeError').innerHTML = `<div class="error-msg">${error.message}</div>`;
+        btn.disabled = false;
+        btn.textContent = 'Verify & continue';
+        return;
+      }
+
+      // Session established — proceed with onboarding completion
+      const session = data.session;
+      if (!session) {
+        document.getElementById('codeError').innerHTML = '<div class="error-msg">Verification succeeded but no session was created. Please try again.</div>';
+        btn.disabled = false;
+        btn.textContent = 'Verify & continue';
+        return;
+      }
+
+      await completeVerification(session, brandData.id);
+
+    } catch (e) {
+      document.getElementById('codeError').innerHTML = `<div class="error-msg">Something went wrong: ${e.message}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Verify & continue';
+    }
+  }
+
+  async function resendCode() {
+    if (!userEmail) return;
 
     const { error } = await sbClient.auth.signInWithOtp({
       email: userEmail,
-      options: {
-        emailRedirectTo: currentUrl.toString(),
-      },
     });
 
     document.getElementById('resendMsg').innerHTML = error
       ? `<div class="error-msg" style="margin-top:12px">${error.message}</div>`
-      : '<div class="success-badge" style="margin-top:12px">✓ Verification email resent</div>';
+      : '<div class="success-badge" style="margin-top:12px">✓ New code sent</div>';
   }
 
   // ─────────────────────────────────────────
-  // Magic Link Redirect Handler
+  // Shared: Complete verification flow
+  // (link user to brand + generate first draft)
+  // ─────────────────────────────────────────
+  async function completeVerification(session, brandId) {
+    userEmail = session.user.email;
+
+    // Show generating state
+    showStep('step3Loading');
+
+    // Link user to brand via edge function
+    try {
+      const linkRes = await fetch(`${SUPABASE_URL}/functions/v1/news-onboard-link-user`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ brand_id: brandId }),
+      });
+      const linkData = await linkRes.json();
+      if (!linkData.success) console.error('Link user failed:', linkData.error);
+    } catch (e) {
+      console.error('Link user error:', e);
+    }
+
+    // Fetch brand data for display
+    try {
+      const brandRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/brand_profiles?id=eq.${brandId}&select=*`,
+        {
+          headers: {
+            'apikey': ANON_KEY,
+            'Authorization': `Bearer ${ANON_KEY}`,
+            'Accept-Profile': 'news',
+          }
+        }
+      );
+      const brands = await brandRes.json();
+      if (brands.length > 0) {
+        brandData = brands[0];
+      }
+    } catch (e) {
+      console.error('Failed to fetch brand:', e);
+    }
+
+    if (!brandData) {
+      showStep('step1');
+      return;
+    }
+
+    // Generate first draft
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/news-generate-content`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          brand_name: brandData.name,
+          channel: 'linkedin',
+          content_type: 'synthesis',
+          min_relevance: 50,
+          max_articles: 5,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      populateStep3(data);
+      showStep('step3');
+    } catch (e) {
+      // Even if draft generation fails, show a message
+      showStep('step3');
+      document.getElementById('draftBody').innerHTML =
+        '<p style="color:var(--text-muted)">Draft generation is processing. Check back shortly in the review dashboard.</p>';
+    }
+  }
+
+  // ─────────────────────────────────────────
+  // Legacy: Magic Link Redirect Handler
+  // (kept as fallback for users who received
+  //  a magic link before this OTP update)
   // ─────────────────────────────────────────
   async function handleRedirect() {
     const params = new URLSearchParams(window.location.search);
@@ -1347,80 +1484,8 @@
       return false;
     }
 
-    userEmail = finalSession.user.email;
-
-    // Show generating state
-    showStep('step3Loading');
-
-    // Link user to brand via edge function
-    try {
-      const linkRes = await fetch(`${SUPABASE_URL}/functions/v1/news-onboard-link-user`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${finalSession.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ brand_id: brandId }),
-      });
-      const linkData = await linkRes.json();
-      if (!linkData.success) console.error('Link user failed:', linkData.error);
-    } catch (e) {
-      console.error('Link user error:', e);
-    }
-
-    // Fetch brand data for display
-    try {
-      const brandRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/brand_profiles?id=eq.${brandId}&select=*`,
-        {
-          headers: {
-            'apikey': ANON_KEY,
-            'Authorization': `Bearer ${ANON_KEY}`,
-            'Accept-Profile': 'news',
-          }
-        }
-      );
-      const brands = await brandRes.json();
-      if (brands.length > 0) {
-        brandData = brands[0];
-      }
-    } catch (e) {
-      console.error('Failed to fetch brand:', e);
-    }
-
-    if (!brandData) {
-      showStep('step1');
-      return false;
-    }
-
-    // Generate first draft
-    try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/news-generate-content`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          brand_name: brandData.name,
-          channel: 'linkedin',
-          content_type: 'synthesis',
-          min_relevance: 50,
-          max_articles: 5,
-        }),
-      });
-
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-
-      populateStep3(data);
-      showStep('step3');
-    } catch (e) {
-      // Even if draft generation fails, show a message
-      showStep('step3');
-      document.getElementById('draftBody').innerHTML =
-        '<p style="color:var(--text-muted)">Draft generation is processing. Check back shortly in the review dashboard.</p>';
-    }
+    // Use shared completion flow
+    await completeVerification(finalSession, brandId);
 
     // Clean the URL
     window.history.replaceState({}, '', window.location.pathname);
@@ -1485,13 +1550,16 @@
         startOnboarding();
       } else if (document.getElementById('stepEmail').classList.contains('active')) {
         e.preventDefault();
-        sendMagicLink();
+        sendVerificationCode();
+      } else if (document.getElementById('stepEmailSent').classList.contains('active')) {
+        e.preventDefault();
+        verifyCode();
       }
     }
   });
 
   // ─────────────────────────────────────────
-  // On page load: check for magic link redirect
+  // On page load: check for legacy magic link redirect
   // ─────────────────────────────────────────
   (async function init() {
     await handleRedirect();
