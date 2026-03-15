@@ -47,11 +47,13 @@
       width: 100%; height: 100%;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      padding: 60px 100px;
+      justify-content: flex-start;
+      padding: 80px 100px 90px;
       opacity: 0;
       transform: translateX(40px);
       transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       pointer-events: none;
     }
 
@@ -220,6 +222,44 @@
     .nav-dots { display: flex; gap: 6px; }
     .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.15); cursor: pointer; transition: all 0.3s; }
     .nav-dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
+
+    @media (max-width: 768px) {
+      .slide { padding: 64px 24px 80px; }
+      .slide-logo { top: 16px; left: 20px; font-size: 11px; letter-spacing: 1.5px; }
+      .slide-number { top: 16px; right: 20px; font-size: 11px; }
+      h1 { font-size: 30px; letter-spacing: -1px; margin-bottom: 16px; }
+      h2 { font-size: 24px; margin-bottom: 14px; }
+      .subtitle { font-size: 16px; }
+      .kicker { font-size: 11px; letter-spacing: 2px; margin-bottom: 10px; }
+      .grid-2 { grid-template-columns: 1fr; gap: 16px; }
+      .grid-3 { grid-template-columns: 1fr; gap: 16px; }
+      .grid-4 { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .pipeline { flex-direction: column; gap: 8px; }
+      .pipeline-arrow { transform: rotate(90deg); padding: 4px 0; justify-content: center; }
+      .card { padding: 18px; }
+      .card-title { font-size: 15px; }
+      .card-desc { font-size: 12px; }
+      .stat-value { font-size: 28px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .tool-card { padding: 16px 12px; }
+      .tool-name { font-size: 14px; }
+      .tool-role { font-size: 11px; }
+      .voice-row { flex-direction: column; gap: 8px; }
+      .voice-brand { width: auto; }
+      .voice-example { font-size: 13px; }
+      .decision-q { font-size: 14px; }
+      .decision-a { font-size: 12px; }
+      .timeline-dot { width: 28px; height: 28px; font-size: 10px; }
+      .timeline-title { font-size: 13px; }
+      .timeline-desc { font-size: 11px; }
+      .title-accent { margin-bottom: 20px; }
+      .cta-box { padding: 16px 24px; }
+      .cta-box a { font-size: 15px; }
+      .nav { bottom: 12px; padding: 6px 12px; gap: 10px; }
+      .nav-btn { width: 32px; height: 32px; font-size: 14px; }
+      .nav-dot { width: 6px; height: 6px; }
+      .nav-dot.active { width: 16px; }
+    }
 
     @media print {
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
