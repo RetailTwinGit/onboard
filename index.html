@@ -518,6 +518,12 @@
     </div>
 
     <div class="form-group">
+      <label>Your Email *</label>
+      <input type="email" id="onboardEmail" placeholder="e.g. you@yourcompany.com">
+      <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">Your work email. If your company already has a brand, we'll add you to the team.</p>
+    </div>
+
+    <div class="form-group">
       <label>Your Bio <span style="opacity:0.5">(optional)</span></label>
       <textarea id="brandBio" rows="3" placeholder="e.g. Supply chain strategist with 15 years in fashion retail. Former VP Operations at Nike, now consulting brands on demand-driven replenishment."></textarea>
       <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">Tell us who you are. This shapes how AI writes in your voice.</p>
@@ -542,6 +548,36 @@
       <div class="spinner"></div>
       <div class="loading-text" id="loadingText">
         <div class="loading-step">Analyzing website...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════ STEP 1C: JOIN REQUEST SENT ════════════════ -->
+  <div class="step" id="stepJoinRequest">
+    <div style="text-align:center">
+      <div style="font-size:56px; margin-bottom:16px;">👥</div>
+      <h1>Join request sent</h1>
+      <p class="subtitle" style="max-width:480px; margin:12px auto 32px">
+        <strong id="joinBrandName"></strong> already has an active brand on Supply Twin.
+        We've notified the brand owner — you'll receive an email when your request is approved.
+      </p>
+
+      <div class="card" style="text-align:left; max-width:420px; margin:0 auto 24px;">
+        <div class="card-title">What happens next</div>
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:12px;">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <span style="font-size:20px;">1️⃣</span>
+            <span style="font-size:14px; color:var(--text-muted);">The brand owner reviews your request</span>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <span style="font-size:20px;">2️⃣</span>
+            <span style="font-size:14px; color:var(--text-muted);">You'll get an email once you're approved</span>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <span style="font-size:20px;">3️⃣</span>
+            <span style="font-size:14px; color:var(--text-muted);">Log in at <a href="https://twin-review.lovable.app" style="color:var(--accent);">twin-review.lovable.app</a> to start reviewing content</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -888,7 +924,7 @@
 
     // Map step IDs to progress dot numbers
     let stepNum;
-    if (id === 'step1' || id === 'step1Loading') stepNum = 1;
+    if (id === 'step1' || id === 'step1Loading' || id === 'stepJoinRequest') stepNum = 1;
     else if (id === 'step2') stepNum = 2;
     else if (id === 'stepEmail' || id === 'stepEmailSent') stepNum = 3;
     else stepNum = 4; // step3Loading, step3
@@ -906,8 +942,13 @@
   // ─────────────────────────────────────────
   async function startOnboarding() {
     const name = document.getElementById('companyName').value.trim();
+    const email = document.getElementById('onboardEmail').value.trim();
     if (!name) {
       document.getElementById('step1Error').innerHTML = '<div class="error-msg">Please enter a company name.</div>';
+      return;
+    }
+    if (!email) {
+      document.getElementById('step1Error').innerHTML = '<div class="error-msg">Please enter your email address.</div>';
       return;
     }
 
@@ -934,6 +975,7 @@
       const knowledgeUrlsRaw = document.getElementById('knowledgeUrls').value.trim();
       const payload = {
         company_name: name,
+        email: email,
         website_url: document.getElementById('websiteUrl').value.trim() || undefined,
         personal_role: document.getElementById('personalRole').value.trim() || undefined,
         description: document.getElementById('description').value.trim() || undefined,
@@ -956,6 +998,14 @@
       clearInterval(loadingInterval);
 
       if (!data.success) throw new Error(data.error);
+
+      // Domain match: join existing brand instead of creating new one
+      if (data.action === 'join_request') {
+        clearInterval(loadingInterval);
+        document.getElementById('joinBrandName').textContent = data.brand_name;
+        showStep('stepJoinRequest');
+        return;
+      }
 
       brandData = data.brand;
       populateStep2(data);
@@ -1234,6 +1284,11 @@
     document.getElementById('step2Error').innerHTML = '';
     try {
       await saveUpdates(collectUpdates());
+      // Pre-fill email from Step 1 if available
+      const step1Email = document.getElementById('onboardEmail').value.trim();
+      if (step1Email) {
+        document.getElementById('userEmail').value = step1Email;
+      }
       showStep('stepEmail');
     } catch (e) {
       document.getElementById('step2Error').innerHTML = `<div class="error-msg">${e.message}</div>`;
